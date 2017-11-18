@@ -12,6 +12,7 @@ import (
 	"mime"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
@@ -197,9 +198,11 @@ func run() {
 
 		ui.Handle("/sys/kbd/C-u", func(ui.Event) {
 			if f, ok := downloadUpdate(update); ok {
-				installUpdate(f)
+				if ok := installUpdate(f); !ok {
+					showUpdateError(update, fmt.Sprintf("There was an error installing %s", update.Name))
+				}
 			} else {
-				showUpdateError(update)
+				showUpdateError(update, fmt.Sprintf("There was an error downloading %s", update.Name))
 			}
 		})
 	}
@@ -323,8 +326,8 @@ func showUpdateAvailable(update *Update) {
 	addComponent("update-tip", u, ComponentOpts{Order: 7})
 }
 
-func showUpdateError(update *Update) {
-	u := ui.NewPar(fmt.Sprintf("There was an error updating to %s", update.Name))
+func showUpdateError(update *Update, msg string) {
+	u := ui.NewPar(msg)
 	u.TextFgColor = ui.ColorRed
 	u.BorderFg = ui.ColorRed
 	u.Width = 50
@@ -418,27 +421,69 @@ func downloadUpdate(update *Update) (*os.File, bool) {
 	return f, true
 }
 
-func installUpdate(file *os.File) {
-	for i := 1; i <= 100; i++ {
-		time.Sleep(50 * time.Millisecond)
-
-		g := ui.NewGauge()
-		g.Percent = i
-		g.Width = 50
-		g.Height = 3
-		g.Y = 11
-		g.BorderLabel = "Installing update..."
-		g.BorderLabelFg = ui.ColorGreen
-		g.BorderFg = ui.ColorGreen
-		g.BarColor = ui.ColorGreen
-
-		if i > 1 {
-			updateComponent("install-update", g, ComponentOpts{Order: 2})
-		} else {
-			addComponent("install-update", g, ComponentOpts{Order: 2})
-		}
+func installUpdate(update *os.File) bool {
+	ex, err := os.Executable()
+	if err != nil {
+		return false
 	}
-	removeComponent("install-update")
+
+	tmp, err := ioutil.TempFile("", filepath.Base(ex))
+	if err != nil {
+		return false
+	}
+	defer os.Remove(tmp.Name())
+
+	f, err := os.Open(ex)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+
+	// Create the progress bar
+	g := ui.NewGauge()
+	g.Percent = 0
+	g.Width = 50
+	g.Height = 3
+	g.Y = 11
+	g.BorderLabel = "Installing update..."
+	g.BorderLabelFg = ui.ColorGreen
+	g.BorderFg = ui.ColorGreen
+	g.BarColor = ui.ColorGreen
+	addComponent("install-update", g, ComponentOpts{Order: 2})
+	defer removeComponent("install-update")
+
+	// Create the progress reader
+	fi, err := f.Stat()
+	if err != nil {
+		return false
+	}
+
+	size := fi.Size()
+	prog := &ioprogress.Reader{
+		Reader:       f,
+		Size:         size,
+		DrawInterval: time.Duration(50 * time.Millisecond),
+		DrawFunc: func(size, total int64) error {
+			g.Percent = int(float64(size) / float64(total) * 100)
+
+			updateComponent("install-update", g, ComponentOpts{Order: 2})
+
+			return nil
+		},
+	}
+
+	_, err = io.Copy(tmp, prog)
+	if err != nil {
+		return false
+	}
+
+	if err := tmp.Close(); err != nil {
+		return false
+	}
+
+	// TODO(ezekg) Unzip update and replace ex (rollback tmp file if replace fails)
 
 	quit()
+
+	return true
 }
