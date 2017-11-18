@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/dsnet/compress"
+  packages = [".","bzip2","bzip2/internal/sais","internal","internal/errors","internal/prefix"]
+  revision = "c4dbed65594871659ea7347a85e1b8dcd97b9990"
+
+[[projects]]
   name = "github.com/gizak/termui"
   packages = ["."]
   revision = "24acd523c756fd9728824cdfac66aad9d8982fb7"
@@ -18,6 +24,12 @@
   packages = ["."]
   revision = "9e777a8366cce605130a531d2cd6363d07ad7317"
   version = "v0.0.2"
+
+[[projects]]
+  name = "github.com/mholt/archiver"
+  packages = ["."]
+  revision = "cdc68dd1f170b8dfc1a0d2231b5bb0967ed67006"
+  version = "v2.0"
 
 [[projects]]
   branch = "master"
@@ -37,9 +49,21 @@
   packages = ["."]
   revision = "aa4a75b1c20a2b03751b1a9f7e41d58bd6f71c43"
 
+[[projects]]
+  branch = "master"
+  name = "github.com/nwaples/rardecode"
+  packages = ["."]
+  revision = "e06696f847aeda6f39a8f0b7cdff193b7690aef6"
+
+[[projects]]
+  name = "github.com/ulikunitz/xz"
+  packages = [".","internal/hash","internal/xlog","lzma"]
+  revision = "0c6b41e72360850ca4f98dc341fd999726ea007f"
+  version = "v0.5.4"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "52ee8aeffc0a0f874960494cff6fcf42aff5909b6efe7aa98aafde003882314e"
+  inputs-digest = "b1057cf530cbd050850a2c8ec385786328c1e78ac4a67f7bd7f41d06e1eb0f4d"
   solver-name = "gps-cdcl"
   solver-version = 1

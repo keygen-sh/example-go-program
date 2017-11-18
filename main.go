@@ -19,7 +19,7 @@ import (
 	"time"
 
 	ui "github.com/gizak/termui"
-	// "github.com/inconshreveable/go-update"
+	"github.com/mholt/archiver"
 	"github.com/mitchellh/ioprogress"
 )
 
@@ -198,7 +198,9 @@ func run() {
 
 		ui.Handle("/sys/kbd/C-u", func(ui.Event) {
 			if f, ok := downloadUpdate(update); ok {
-				if ok := installUpdate(f); !ok {
+				if ok := installUpdate(f); ok {
+					quit() // All good. Exit so that they can restart!
+				} else {
 					showUpdateError(update, fmt.Sprintf("There was an error installing %s", update.Name))
 				}
 			} else {
@@ -361,7 +363,7 @@ func downloadUpdate(update *Update) (*os.File, bool) {
 	if err != nil {
 		return nil, false
 	}
-	defer os.Remove(tmp.Name())
+	defer tmp.Close()
 
 	// Create the progress bar
 	g := ui.NewGauge()
@@ -402,11 +404,6 @@ func downloadUpdate(update *Update) (*os.File, bool) {
 	}
 	defer f.Close()
 
-	// We're done with our tmp file now so all good to close
-	if err := tmp.Close(); err != nil {
-		return nil, false
-	}
-
 	// Validate checksum
 	h := md5.New()
 	if _, err := io.Copy(h, f); err != nil {
@@ -426,18 +423,13 @@ func installUpdate(update *os.File) bool {
 	if err != nil {
 		return false
 	}
+	tmp := fmt.Sprintf("%s-%d", ex, time.Now().UnixNano())
 
-	tmp, err := ioutil.TempFile("", filepath.Base(ex))
+	// Rename current executable so that we can replace it
+	err = os.Rename(ex, tmp)
 	if err != nil {
 		return false
 	}
-	defer os.Remove(tmp.Name())
-
-	f, err := os.Open(ex)
-	if err != nil {
-		return false
-	}
-	defer f.Close()
 
 	// Create the progress bar
 	g := ui.NewGauge()
@@ -452,38 +444,28 @@ func installUpdate(update *os.File) bool {
 	addComponent("install-update", g, ComponentOpts{Order: 2})
 	defer removeComponent("install-update")
 
-	// Create the progress reader
-	fi, err := f.Stat()
+	// Extract zip archive and replace current executable with archived one
+	err = archiver.Zip.Open(update.Name(), filepath.Dir(ex))
+	if err != nil {
+		os.Rename(tmp, ex) // Restore ex if extraction fails
+		return false
+	}
+
+	// Get permissions for old executable so we can mirror them
+	fi, err := os.Stat(tmp)
 	if err != nil {
 		return false
 	}
 
-	size := fi.Size()
-	prog := &ioprogress.Reader{
-		Reader:       f,
-		Size:         size,
-		DrawInterval: time.Duration(50 * time.Millisecond),
-		DrawFunc: func(size, total int64) error {
-			g.Percent = int(float64(size) / float64(total) * 100)
-
-			updateComponent("install-update", g, ComponentOpts{Order: 2})
-
-			return nil
-		},
-	}
-
-	_, err = io.Copy(tmp, prog)
+	err = os.Chmod(ex, fi.Mode())
 	if err != nil {
+		os.Rename(tmp, ex)
 		return false
 	}
 
-	if err := tmp.Close(); err != nil {
-		return false
-	}
-
-	// TODO(ezekg) Unzip update and replace ex (rollback tmp file if replace fails)
-
-	quit()
+	// Clean up the old executable and update archive
+	os.Remove(update.Name())
+	os.Remove(tmp)
 
 	return true
 }
