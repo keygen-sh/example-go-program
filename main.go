@@ -358,7 +358,7 @@ func downloadUpdate(update *Update) (*os.File, bool) {
 	if err != nil {
 		return nil, false
 	}
-	defer tmp.Close()
+	defer os.Remove(tmp.Name())
 
 	// Create the progress bar
 	g := ui.NewGauge()
@@ -393,12 +393,16 @@ func downloadUpdate(update *Update) (*os.File, bool) {
 		return nil, false
 	}
 
-	// Need to reopen the tmp file or else our checksum is incorrect (???)
 	f, err := os.Open(tmp.Name())
 	if err != nil {
 		return nil, false
 	}
 	defer f.Close()
+
+	// We're done with our tmp file now so all good to close
+	if err := tmp.Close(); err != nil {
+		return nil, false
+	}
 
 	// Validate checksum
 	h := md5.New()
