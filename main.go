@@ -275,7 +275,7 @@ func checkForUpdate(version string, license string) (*Update, bool) {
 		},
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://dist.keygen.sh/v1/%s/%s/update/%s/zip/%s?key=%s", account, product, runtime.GOOS, version, license), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://dist.keygen.sh/v1/%s/%s/update/%s-%s/zip/%s?key=%s", account, product, runtime.GOOS, runtime.GOARCH, version, license), nil)
 	if err != nil {
 		return nil, false
 	}
