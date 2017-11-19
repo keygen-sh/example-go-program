@@ -164,24 +164,21 @@ func render() {
 }
 
 func run() {
+	g := ui.NewGauge()
+	g.Percent = 0
+	g.Width = 50
+	g.Height = 3
+	g.Y = 11
+	g.BorderLabel = "Loading..."
+	g.BorderLabelFg = ui.ColorGreen
+	g.BorderFg = ui.ColorGreen
+	g.BarColor = ui.ColorGreen
+	addComponent("loading-app", g, ComponentOpts{Order: 2})
+
 	for i := 1; i <= 100; i++ {
-		time.Sleep(10 * time.Millisecond)
-
-		g := ui.NewGauge()
+		time.Sleep(50 * time.Millisecond)
 		g.Percent = i
-		g.Width = 50
-		g.Height = 3
-		g.Y = 11
-		g.BorderLabel = "Loading..."
-		g.BorderLabelFg = ui.ColorGreen
-		g.BorderFg = ui.ColorGreen
-		g.BarColor = ui.ColorGreen
-
-		if i > 1 {
-			updateComponent("loading-app", g, ComponentOpts{Order: 2})
-		} else {
-			addComponent("loading-app", g, ComponentOpts{Order: 2})
-		}
+		updateComponent("loading-app", g, ComponentOpts{Order: 2})
 	}
 	removeComponent("loading-app")
 
@@ -193,21 +190,7 @@ func run() {
 	m.Y = 2
 	addComponent("app", m, ComponentOpts{Order: 10})
 
-	if update, ok := checkForUpdate(version, license); ok {
-		showUpdateAvailable(update)
-
-		ui.Handle("/sys/kbd/C-u", func(ui.Event) {
-			if f, ok := downloadUpdate(update); ok {
-				if ok := installUpdate(f); ok {
-					quit() // All good. Exit so that they can restart!
-				} else {
-					showUpdateError(update, fmt.Sprintf("There was an error installing %s", update.Name))
-				}
-			} else {
-				showUpdateError(update, fmt.Sprintf("There was an error downloading %s", update.Name))
-			}
-		})
-	}
+	go enableAutoUpdates()
 }
 
 func quit() {
@@ -264,6 +247,27 @@ func validateLicenseKey(key string) bool {
 type Update struct {
 	Name string `json:"name"`
 	URL  string `json:"url"`
+}
+
+func enableAutoUpdates() {
+	for {
+		if update, ok := checkForUpdate(version, license); ok {
+			showUpdateAvailable(update)
+
+			ui.Handle("/sys/kbd/C-u", func(ui.Event) {
+				if f, ok := downloadUpdate(update); ok {
+					if ok := installUpdate(f); ok {
+						quit() // All good. Exit so that they can restart!
+					} else {
+						showUpdateError(update, fmt.Sprintf("There was an error installing %s", update.Name))
+					}
+				} else {
+					showUpdateError(update, fmt.Sprintf("There was an error downloading %s", update.Name))
+				}
+			})
+		}
+		time.Sleep(15 * time.Minute)
+	}
 }
 
 func checkForUpdate(version string, license string) (*Update, bool) {
@@ -386,9 +390,7 @@ func downloadUpdate(update *Update) (*os.File, bool) {
 		DrawInterval: time.Duration(50 * time.Millisecond),
 		DrawFunc: func(size, total int64) error {
 			g.Percent = int(float64(size) / float64(total) * 100)
-
 			updateComponent("download-update", g, ComponentOpts{Order: 2})
-
 			return nil
 		},
 	}
