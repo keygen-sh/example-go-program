@@ -1,6 +1,7 @@
 # Self-Updating Go Program
 The following is a self-updating program written in Go that showcases how
-to use [Keygen](https://keygen.sh) for licensing and auto-updates.
+to use [Keygen](https://keygen.sh) for licensing and how to implement
+auto-update functionality within a command line program using [Keygen Dist](https://keygen.sh/distribution).
 
 ## Compiling
 
