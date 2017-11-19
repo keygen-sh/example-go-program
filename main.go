@@ -434,8 +434,11 @@ func installUpdate(update *os.File) bool {
 	}
 
 	// Extract zip archive and replace current executable with archived one
+	// FIXME(ezekg) This assumes that the archive consists of a single file,
+	//              and that the file is named the same as this executable.
 	err = archiver.Zip.Open(update.Name(), filepath.Dir(ex))
 	if err != nil {
+		os.Remove(update.Name())
 		os.Rename(tmp, ex) // Restore ex if extraction fails
 		return false
 	}
@@ -448,6 +451,7 @@ func installUpdate(update *os.File) bool {
 
 	err = os.Chmod(ex, fi.Mode())
 	if err != nil {
+		os.Remove(update.Name())
 		os.Rename(tmp, ex)
 		return false
 	}
