@@ -431,19 +431,6 @@ func installUpdate(update *os.File) bool {
 		return false
 	}
 
-	// Create the progress bar
-	g := ui.NewGauge()
-	g.Percent = 0
-	g.Width = 50
-	g.Height = 3
-	g.Y = 11
-	g.BorderLabel = "Installing update..."
-	g.BorderLabelFg = ui.ColorGreen
-	g.BorderFg = ui.ColorGreen
-	g.BarColor = ui.ColorGreen
-	addComponent("install-update", g, ComponentOpts{Order: 2})
-	defer removeComponent("install-update")
-
 	// Extract zip archive and replace current executable with archived one
 	err = archiver.Zip.Open(update.Name(), filepath.Dir(ex))
 	if err != nil {
