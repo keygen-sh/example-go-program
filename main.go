@@ -61,7 +61,7 @@ func main() {
 	ui.Handle("/sys/kbd/<enter>", func(e ui.Event) {
 		license = p.Text
 
-		if ok := validateLicenseKey(p.Text); ok {
+		if v := validateLicenseKey(p.Text); v.Valid {
 			p.BorderLabelFg = ui.ColorGreen
 			p.BorderFg = ui.ColorGreen
 
@@ -69,6 +69,9 @@ func main() {
 
 			go run()
 		} else {
+			if v.Detail != "" {
+				p.BorderLabel = fmt.Sprintf("That license %s", v.Detail)
+			}
 			p.BorderLabelFg = ui.ColorRed
 			p.BorderFg = ui.ColorRed
 		}
@@ -210,17 +213,19 @@ type ValidationScope struct {
 	Product string `json:"product"`
 }
 
-type Validation struct {
-	Meta struct {
-		Valid  bool   `json:"valid"`
-		Detail string `json:"detail"`
-	} `json:"meta"`
+type ValidationResponse struct {
+	Validation `json:"meta"`
 }
 
-func validateLicenseKey(key string) bool {
+type Validation struct {
+	Valid  bool   `json:"valid"`
+	Detail string `json:"detail"`
+}
+
+func validateLicenseKey(key string) Validation {
 	b, err := json.Marshal(ValidationRequest{ValidationMeta{key, ValidationScope{product}}})
 	if err != nil {
-		return false
+		return Validation{Valid: false}
 	}
 
 	buffer := bytes.NewBuffer(b)
@@ -230,18 +235,18 @@ func validateLicenseKey(key string) bool {
 		buffer,
 	)
 	if err != nil {
-		return false
+		return Validation{Valid: false}
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode == http.StatusNotFound {
-		return false
+		return Validation{Valid: false}
 	}
 
-	var v Validation
+	var v *ValidationResponse
 	json.NewDecoder(res.Body).Decode(&v)
 
-	return v.Meta.Valid
+	return v.Validation
 }
 
 type Update struct {

@@ -11,23 +11,23 @@ dep ensure
 
 To compile for your operating system, simply run the following from the root of the project directory:
 ```
-go install
+go build
 ```
 
 To compile for all platforms using [`gox`](https://github.com/mitchellh/gox), run the following:
 ```
-VERSION=v1.0.0 gox -output "dist/$VERSION/{{.OS}}-{{.Arch}}/{{.Dir}}"
+gox -output "dist/v1.x.x/{{.OS}}-{{.Arch}}/{{.Dir}}"
 ```
 
 ## Testing licensing
 
 Below is a list of license keys you can use to test program functionality.
 
-| Key    | Validity  |
-|:-------|:----------|
-| 000001 | Valid     |
-| 000010 | Suspended |
-…
+| Key       | Validity  |
+|:----------|:----------|
+| `val-key` | Valid     |
+| `sus-key` | Suspended |
+| `exp-key` | Expired   |
 
 ## Testing updates
 
