@@ -3,6 +3,8 @@ The following is a self-updating program written in Go that showcases how
 to use [Keygen](https://keygen.sh) for licensing and how to implement
 auto-update functionality within a command line program using [Keygen Dist](https://keygen.sh/distribution).
 
+![image](https://user-images.githubusercontent.com/6979737/46363169-e0187400-c637-11e8-82df-06a58823b7fe.png)
+
 ## Compiling
 
 First up, install dependencies with [`dep`](https://github.com/golang/dep):
